@@ -19,8 +19,9 @@ type Product struct {
 }
 
 type Backend struct {
-	db   *sql.DB
-	Addr string
+	db     *sql.DB
+	Addr   string
+	router *mux.Router
 }
 
 func (b *Backend) Open(file string) error {
@@ -54,9 +55,8 @@ func (b Backend) Fetch() ([]Product, error) {
 }
 
 func (b Backend) Run() {
-	r := mux.NewRouter()
-	r.HandleFunc("/products", b.getProducts).Methods("GET")
-	http.Handle("/", r)
+	b.InitRoutes()
+	http.Handle("/", b.router)
 	fmt.Println("Server started and listening on port ", b.Addr)
 	log.Fatal(http.ListenAndServe(b.Addr, nil))
 }
@@ -73,4 +73,11 @@ func (b Backend) getProducts(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(rw, "Products:\n%v", products)
+}
+
+func (b *Backend) InitRoutes() {
+	router := mux.NewRouter()
+	router.HandleFunc("/products", b.getProducts).Methods("GET")
+
+	b.router = router
 }
