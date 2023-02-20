@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/mux"
+
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -52,7 +54,9 @@ func (b Backend) Fetch() ([]Product, error) {
 }
 
 func (b Backend) Run() {
-	http.HandleFunc("/products", b.getProducts)
+	r := mux.NewRouter()
+	r.HandleFunc("/products", b.getProducts).Methods("GET")
+	http.Handle("/", r)
 	fmt.Println("Server started and listening on port ", b.Addr)
 	log.Fatal(http.ListenAndServe(b.Addr, nil))
 }
