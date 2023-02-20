@@ -2,21 +2,16 @@ package backend
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 
 	_ "github.com/mattn/go-sqlite3"
 )
-
-type Product struct {
-	id        int
-	name      string
-	inventory int
-	price     int
-}
 
 type Backend struct {
 	db     *sql.DB
@@ -24,60 +19,67 @@ type Backend struct {
 	router *mux.Router
 }
 
-func (b *Backend) Open(file string) error {
-	db, err := sql.Open("sqlite3", file)
+func (b *Backend) init() error {
+	db, err := sql.Open("sqlite3", "../../practiceit.db")
 	if err != nil {
 		return fmt.Errorf("Can not connect database: %s", err)
 	}
 	b.db = db
+	b.initRoutes()
 	return nil
 }
 
-func (b Backend) Fetch() ([]Product, error) {
-	rows, err := b.db.Query("SELECT id, name, inventory, price FROM products")
-	if err != nil {
-		return nil, fmt.Errorf("Can not query: %s", err)
-	}
-
-	defer rows.Close()
-
-	var products []Product
-	for rows.Next() {
-		var p Product
-
-		rows.Scan(&p.id, &p.name, &p.inventory, &p.price)
-
-		products = append(products, p)
-		fmt.Printf("Product: %d, %s, %d, %d\n", p.id, p.name, p.inventory, p.price)
-	}
-
-	return products, nil
-}
-
 func (b Backend) Run() {
-	b.InitRoutes()
+	b.init()
 	http.Handle("/", b.router)
 	fmt.Println("Server started and listening on port ", b.Addr)
 	log.Fatal(http.ListenAndServe(b.Addr, nil))
 }
 
-func (b Backend) getProducts(rw http.ResponseWriter, r *http.Request) {
-	err := b.Open("../../practiceit.db")
-	if err != nil {
-		fmt.Fprintf(rw, "Can not open database: %s", err)
-		return
-	}
-	products, err := b.Fetch()
-	if err != nil {
-		fmt.Fprintf(rw, "Can not fetch products: %s", err)
-		return
-	}
-	fmt.Fprintf(rw, "Products:\n%v", products)
-}
-
-func (b *Backend) InitRoutes() {
+func (b *Backend) initRoutes() {
 	router := mux.NewRouter()
-	router.HandleFunc("/products", b.getProducts).Methods("GET")
+	router.HandleFunc("/products", b.allProducts).Methods("GET")
+	router.HandleFunc("/products/{id}", b.fetchProduct).Methods("GET")
 
 	b.router = router
+}
+
+func (b *Backend) allProducts(rw http.ResponseWriter, r *http.Request) {
+	products, err := getProducts(b.db)
+	if err != nil {
+		fmt.Printf("Can not get all products: %s", err.Error())
+		respondWithError(rw, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondWithJSON(rw, http.StatusOK, products)
+}
+
+func (b *Backend) fetchProduct(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	var p product
+	p.Id, _ = strconv.Atoi(id)
+	err := p.getProduct(b.db)
+	if err != nil {
+		fmt.Printf("Can not get product: %s", err.Error())
+		respondWithError(rw, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondWithJSON(rw, http.StatusOK, p)
+}
+
+// Helper functions
+func respondWithError(w http.ResponseWriter, code int, message string) {
+	respondWithJSON(w, code, map[string]string{"error": message})
+}
+
+func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
+	response, _ := json.Marshal(payload)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	w.Write(response)
 }
