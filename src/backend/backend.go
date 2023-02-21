@@ -15,24 +15,24 @@ import (
 )
 
 type Backend struct {
-	db     *sql.DB
+	DB     *sql.DB
 	Addr   string
-	router *mux.Router
+	Router *mux.Router
 }
 
-func (b *Backend) init() error {
+func (b *Backend) Init() error {
 	db, err := sql.Open("sqlite3", "../../practiceit.db")
 	if err != nil {
 		return fmt.Errorf("Can not connect database: %s", err)
 	}
-	b.db = db
+	b.DB = db
 	b.initRoutes()
 	return nil
 }
 
 func (b Backend) Run() {
-	b.init()
-	http.Handle("/", b.router)
+	b.Init()
+	http.Handle("/", b.Router)
 	fmt.Println("Server started and listening on port ", b.Addr)
 	log.Fatal(http.ListenAndServe(b.Addr, nil))
 }
@@ -46,11 +46,11 @@ func (b *Backend) initRoutes() {
 	router.HandleFunc("/orders/{id}", b.fetchOrder).Methods("GET")
 	router.HandleFunc("/orders", b.newOrder).Methods("POST")
 
-	b.router = router
+	b.Router = router
 }
 
 func (b *Backend) allProducts(w http.ResponseWriter, r *http.Request) {
-	products, err := getProducts(b.db)
+	products, err := getProducts(b.DB)
 	if err != nil {
 		fmt.Printf("Can not get all products: %s\n", err.Error())
 		respondWithError(w, http.StatusInternalServerError, err.Error())
@@ -66,7 +66,7 @@ func (b *Backend) fetchProduct(w http.ResponseWriter, r *http.Request) {
 
 	var p product
 	p.Id, _ = strconv.Atoi(id)
-	err := p.getProduct(b.db)
+	err := p.getProduct(b.DB)
 	if err != nil {
 		fmt.Printf("Can not get product: %s\n", err.Error())
 		respondWithError(w, http.StatusInternalServerError, err.Error())
@@ -90,7 +90,7 @@ func (b *Backend) newProduct(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	err = p.createProduct(b.db)
+	err = p.createProduct(b.DB)
 	if err != nil {
 		fmt.Printf("Can not create product: %s\n", err.Error())
 		respondWithError(w, http.StatusInternalServerError, err.Error())
@@ -101,7 +101,7 @@ func (b *Backend) newProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func (b *Backend) allOrders(w http.ResponseWriter, r *http.Request) {
-	orders, err := getOrders(b.db)
+	orders, err := getOrders(b.DB)
 	if err != nil {
 		fmt.Printf("Can not get all orders: %s\n", err.Error())
 		respondWithError(w, http.StatusInternalServerError, err.Error())
@@ -117,7 +117,7 @@ func (b *Backend) fetchOrder(w http.ResponseWriter, r *http.Request) {
 
 	var o order
 	o.Id, _ = strconv.Atoi(id)
-	err := o.getOrder(b.db)
+	err := o.getOrder(b.DB)
 	if err != nil {
 		fmt.Printf("Can not get order: %s\n", err.Error())
 		respondWithError(w, http.StatusInternalServerError, err.Error())
@@ -141,7 +141,7 @@ func (b *Backend) newOrder(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	err = o.createOrder(b.db)
+	err = o.createOrder(b.DB)
 	if err != nil {
 		fmt.Printf("Can not create order: %s\n", err.Error())
 		respondWithError(w, http.StatusInternalServerError, err.Error())

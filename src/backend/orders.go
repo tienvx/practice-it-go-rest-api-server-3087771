@@ -38,7 +38,7 @@ func getOrders(db *sql.DB) ([]order, error) {
 		}
 		err = o.getItems(db)
 		if err != nil {
-			return nil, fmt.Errorf("Can not get items for order: %s", &err)
+			return nil, fmt.Errorf("Can not get items for order: %s", err)
 		}
 
 		orders = append(orders, o)
