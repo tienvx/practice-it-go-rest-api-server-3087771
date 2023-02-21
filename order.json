@@ -1,0 +1,19 @@
+{
+  "customerName": "Customer XYZ2275",
+  "total": 123,
+  "status": "Waiting for payment",
+  "items": [
+    {
+      "productId": 5,
+      "quantity": 5
+    },
+    {
+      "productId": 7,
+      "quantity": 7
+    },
+    {
+      "productId": 9,
+      "quantity": 99
+    }
+  ]
+}

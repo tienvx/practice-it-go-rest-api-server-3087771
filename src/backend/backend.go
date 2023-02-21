@@ -42,22 +42,25 @@ func (b *Backend) initRoutes() {
 	router.HandleFunc("/products", b.allProducts).Methods("GET")
 	router.HandleFunc("/products/{id}", b.fetchProduct).Methods("GET")
 	router.HandleFunc("/products", b.newProduct).Methods("POST")
+	router.HandleFunc("/orders", b.allOrders).Methods("GET")
+	router.HandleFunc("/orders/{id}", b.fetchOrder).Methods("GET")
+	router.HandleFunc("/orders", b.newOrder).Methods("POST")
 
 	b.router = router
 }
 
-func (b *Backend) allProducts(rw http.ResponseWriter, r *http.Request) {
+func (b *Backend) allProducts(w http.ResponseWriter, r *http.Request) {
 	products, err := getProducts(b.db)
 	if err != nil {
-		fmt.Printf("Can not get all products: %s", err.Error())
-		respondWithError(rw, http.StatusInternalServerError, err.Error())
+		fmt.Printf("Can not get all products: %s\n", err.Error())
+		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	respondWithJSON(rw, http.StatusOK, products)
+	respondWithJSON(w, http.StatusOK, products)
 }
 
-func (b *Backend) fetchProduct(rw http.ResponseWriter, r *http.Request) {
+func (b *Backend) fetchProduct(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
@@ -65,36 +68,87 @@ func (b *Backend) fetchProduct(rw http.ResponseWriter, r *http.Request) {
 	p.Id, _ = strconv.Atoi(id)
 	err := p.getProduct(b.db)
 	if err != nil {
-		fmt.Printf("Can not get product: %s", err.Error())
-		respondWithError(rw, http.StatusInternalServerError, err.Error())
+		fmt.Printf("Can not get product: %s\n", err.Error())
+		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	respondWithJSON(rw, http.StatusOK, p)
+	respondWithJSON(w, http.StatusOK, p)
 }
 
-func (b *Backend) newProduct(rw http.ResponseWriter, r *http.Request) {
+func (b *Backend) newProduct(w http.ResponseWriter, r *http.Request) {
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		fmt.Printf("Can not create product: %s", err.Error())
-		respondWithError(rw, http.StatusBadRequest, err.Error())
+		fmt.Printf("Can not create product: %s\n", err.Error())
+		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	var p product
 	err = json.Unmarshal(reqBody, &p)
 	if err != nil {
-		fmt.Printf("Can not create product: %s", err.Error())
-		respondWithError(rw, http.StatusInternalServerError, err.Error())
+		fmt.Printf("Can not create product: %s\n", err.Error())
+		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	err = p.createProduct(b.db)
 	if err != nil {
-		fmt.Printf("Can not create product: %s", err.Error())
-		respondWithError(rw, http.StatusInternalServerError, err.Error())
+		fmt.Printf("Can not create product: %s\n", err.Error())
+		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	respondWithJSON(rw, http.StatusOK, p)
+	respondWithJSON(w, http.StatusOK, p)
+}
+
+func (b *Backend) allOrders(w http.ResponseWriter, r *http.Request) {
+	orders, err := getOrders(b.db)
+	if err != nil {
+		fmt.Printf("Can not get all orders: %s\n", err.Error())
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, orders)
+}
+
+func (b *Backend) fetchOrder(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	var o order
+	o.Id, _ = strconv.Atoi(id)
+	err := o.getOrder(b.db)
+	if err != nil {
+		fmt.Printf("Can not get order: %s\n", err.Error())
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, o)
+}
+
+func (b *Backend) newOrder(w http.ResponseWriter, r *http.Request) {
+	reqBody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fmt.Printf("Can not create order: %s\n", err.Error())
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	var o order
+	err = json.Unmarshal(reqBody, &o)
+	if err != nil {
+		fmt.Printf("Can not create order: %s\n", err.Error())
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	err = o.createOrder(b.db)
+	if err != nil {
+		fmt.Printf("Can not create order: %s\n", err.Error())
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, o)
 }
 
 // Helper functions
