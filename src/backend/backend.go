@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -40,6 +41,7 @@ func (b *Backend) initRoutes() {
 	router := mux.NewRouter()
 	router.HandleFunc("/products", b.allProducts).Methods("GET")
 	router.HandleFunc("/products/{id}", b.fetchProduct).Methods("GET")
+	router.HandleFunc("/products", b.newProduct).Methods("POST")
 
 	b.router = router
 }
@@ -64,6 +66,30 @@ func (b *Backend) fetchProduct(rw http.ResponseWriter, r *http.Request) {
 	err := p.getProduct(b.db)
 	if err != nil {
 		fmt.Printf("Can not get product: %s", err.Error())
+		respondWithError(rw, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondWithJSON(rw, http.StatusOK, p)
+}
+
+func (b *Backend) newProduct(rw http.ResponseWriter, r *http.Request) {
+	reqBody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fmt.Printf("Can not create product: %s", err.Error())
+		respondWithError(rw, http.StatusBadRequest, err.Error())
+		return
+	}
+	var p product
+	err = json.Unmarshal(reqBody, &p)
+	if err != nil {
+		fmt.Printf("Can not create product: %s", err.Error())
+		respondWithError(rw, http.StatusInternalServerError, err.Error())
+		return
+	}
+	err = p.createProduct(b.db)
+	if err != nil {
+		fmt.Printf("Can not create product: %s", err.Error())
 		respondWithError(rw, http.StatusInternalServerError, err.Error())
 		return
 	}
